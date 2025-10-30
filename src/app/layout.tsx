@@ -17,12 +17,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={poppins.className}>
+    <html lang="pt-BR" className={poppins.className}>
       <body>
-        <div className="flex h-screen">
+        <div className="w-screen overflow-x-hidden h-screen">
           <Toaster />
-          <Sidebar />
-          <main className="flex-1">{children}</main>
+          <main className="w-full h-full">{children}</main>
         </div>
       </body>
     </html>
