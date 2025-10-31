@@ -519,3 +519,67 @@ export async function atualizarServicoMensalAction(data: AtualizarServicoMensalD
     }
   }
 }
+
+// 🔍 Buscar plano mensal por ID
+export async function buscarPlanoPorIdAction(id: number): Promise<PlanoMensalResult> {
+  try {
+    console.log(id)
+    const { isAuthenticated, user } = await checkAuthAction()
+    const adminEmail = process.env.NEXT_PUBLIC_EMAIL
+    if (!isAuthenticated || !user) {
+      return { success: false, message: "Usuário não autenticado" }
+    }
+    if (!adminEmail) {
+      return { success: false, message: "Configuração de e-mail do administrador ausente" }
+    }
+    if (user.email !== adminEmail) {
+      return { success: false, message: "Acesso negado: e-mail não autorizado" }
+    }
+
+    // Buscar o plano mensal por ID
+    const planoMensal = await db
+      .select()
+      .from(planosMensais)
+      .where(eq(planosMensais.id, id))
+      .limit(1)
+
+    if (planoMensal.length === 0) {
+      return { success: false, message: "Plano mensal não encontrado" }
+    }
+
+    // Buscar os serviços mensais para o plano com os dados do serviço
+    const servicosMensaisDoPlano = await db
+      .select({
+        id: servicosMensais.id,
+        servicoId: servicosMensais.servicoId,
+        planoMensalId: servicosMensais.planoMensalId,
+        quantidadePermitida: servicosMensais.quantidadePermitida,
+        servico: {
+          id: servicos.id,
+          nome: servicos.nome,
+          preco: servicos.preco,
+          barbeariaId: servicos.barbeariaId
+        }
+      })
+      .from(servicosMensais)
+      .innerJoin(servicos, eq(servicosMensais.servicoId, servicos.id))
+      .where(eq(servicosMensais.planoMensalId, id))
+
+    const planoComServicos = {
+      ...planoMensal[0],
+      servicosMensais: servicosMensaisDoPlano
+    }
+
+    return {
+      success: true,
+      message: "Plano mensal encontrado com sucesso!",
+      data: planoComServicos
+    }
+  } catch (error) {
+    console.error("Erro ao buscar plano mensal por ID:", error)
+    return {
+      success: false,
+      message: "Erro interno do servidor. Tente novamente."
+    }
+  }
+}
